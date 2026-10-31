@@ -1,0 +1,57 @@
+{
+ "server": {
+ "port":8080
+ },
+ "spring": {
+ "application": {
+ "name": "daoyou"
+ },
+ "datasource": {
+ "driver-class-name": "com.mysql.cj.jdbc.Driver",
+ "url": "jdbc:mysql://localhost:3306/daoyou?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai",
+ "username": "root",
+ "password": "123456"
+ },
+ "data": {
+ "redis": {
+ "host": "${REDIS_HOST:localhost}",
+ "port": "${REDIS_PORT:6379}",
+ "database": "${REDIS_DATABASE:0}",
+ "timeout": "2s"
+ }
+ },
+ "jackson": {
+ "time-zone": "Asia/Shanghai",
+ "date-format": "yyyy-MM-dd HH:mm:ss"
+ }
+ },
+ "mybatis-plus": {
+ "mapper-locations": "classpath:mapper/**/*.xml",
+ "configuration": {
+ "map-underscore-to-camel-case": true
+ },
+ "global-config": {
+ "db-config": {
+ "logic-delete-field": "isDeleted",
+ "logic-delete-value":1,
+ "logic-not-delete-value":0
+ }
+ }
+ },
+ "sa-token": {
+ "token-name": "satoken",
+ "timeout":2592000,
+ "is-concurrent": true
+ },
+ "knife4j": {
+ "enable": true
+ },
+ "daoyou": {
+ "admin-usernames": "${ADMIN_USERNAMES:admin}",
+ "internal-token": "${INTERNAL_TOKEN:daoyou-internal-change-me}",
+ "relic": {
+ "merge-hours":24,
+ "destroy-votes":3
+ }
+ }
+}

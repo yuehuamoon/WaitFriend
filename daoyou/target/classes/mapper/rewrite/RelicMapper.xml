@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daoyou.rewrite.mapper.RelicMapper">
+ <insert id="insertPool" useGeneratedKeys="true" keyProperty="id">
+ INSERT INTO relic_pool(article_id, generation, pool_round, user_uuid, content, like_count,
+ status, merge_deadline) VALUES(#{articleId}, #{generation}, #{poolRound}, #{userUuid},
+ #{content},0, 'pending', #{mergeDeadline})
+ </insert>
+ <insert id="insertParticipantIgnore">
+ INSERT IGNORE INTO relic_participants(article_id, generation, user_uuid)
+ VALUES(#{articleId}, #{generation}, #{userUuid})
+ </insert>
+ <select id="selectPoolById" resultType="com.daoyou.rewrite.entity.RelicPool">
+ SELECT * FROM relic_pool WHERE id = #{id}
+ </select>
+ <select id="selectPoolForUpdate" resultType="com.daoyou.rewrite.entity.RelicPool">
+ SELECT * FROM relic_pool WHERE id = #{id} FOR UPDATE
+ </select>
+ <update id="incrementPoolLike">
+ UPDATE relic_pool SET like_count = like_count +1 WHERE id = #{id} AND status = 'pending'
+ </update>
+ <insert id="insertPoolLikeIgnore">
+ INSERT IGNORE INTO relic_pool_likes(pool_id, user_uuid) VALUES(#{poolId}, #{userUuid})
+ </insert>
+ <update id="discardPendingSameRound">
+ UPDATE relic_pool SET status = 'discarded' WHERE article_id = #{articleId}
+ AND generation = #{generation} AND pool_round = #{poolRound} AND status = 'pending' AND id != #{exceptId}
+ </update>
+ <update id="markPoolMerged">
+ UPDATE relic_pool SET status = #{status}, merged_at = #{mergedAt} WHERE id = #{id} AND status = 'pending'
+ </update>
+ <select id="maxSegmentSeq" resultType="int">
+ SELECT COALESCE(MAX(seq),0) FROM relic_segments WHERE article_id = #{articleId} AND generation = #{generation}
+ </select>
+ <insert id="insertSegment">
+ INSERT INTO relic_segments(article_id, generation, seq, pool_round, user_uuid, content)
+ VALUES(#{articleId}, #{generation}, #{seq}, #{poolRound}, #{userUuid}, #{content})
+ </insert>
+ <update id="updateSegmentContent">
+ UPDATE relic_segments SET content = #{content}
+ WHERE id = #{id} AND user_uuid = #{userUuid}
+ </update>
+ <select id="selectSegmentById" resultType="com.daoyou.rewrite.dto.RelicSegmentView">
+ SELECT s.id, s.article_id, s.generation, s.seq, s.pool_round, s.user_uuid, u.username, s.content, s.merged_at
+ FROM relic_segments s LEFT JOIN `user` u ON u.uuid = s.user_uuid AND u.is_deleted =0
+ WHERE s.id = #{id}
+ </select>
+ <select id="selectSegments" resultType="com.daoyou.rewrite.dto.RelicSegmentView">
+ SELECT s.id, s.article_id, s.generation, s.seq, s.pool_round, s.user_uuid, u.username, s.content, s.merged_at
+ FROM relic_segments s LEFT JOIN `user` u ON u.uuid = s.user_uuid AND u.is_deleted =0
+ WHERE s.article_id = #{articleId} AND s.generation = #{generation} ORDER BY s.seq ASC
+ </select>
+ <select id="selectSegmentsPage" resultType="com.daoyou.rewrite.dto.RelicSegmentView">
+ SELECT s.id, s.article_id, s.generation, s.seq, s.pool_round, s.user_uuid, u.username, s.content, s.merged_at
+ FROM relic_segments s LEFT JOIN `user` u ON u.uuid = s.user_uuid AND u.is_deleted =0
+ WHERE s.article_id = #{articleId} AND s.generation = #{generation}
+ ORDER BY s.seq ASC LIMIT #{limit} OFFSET #{offset}
+ </select>
+ <select id="countSegments" resultType="long">
+ SELECT COUNT(1) FROM relic_segments
+ WHERE article_id = #{articleId} AND generation = #{generation}
+ </select>
+ <select id="selectPendingPool" resultType="com.daoyou.rewrite.dto.RelicPoolView">
+ SELECT p.id, p.article_id, p.generation, p.pool_round, p.user_uuid, u.username,
+ p.content, p.like_count, p.status, p.merge_deadline, p.create_time
+ FROM relic_pool p LEFT JOIN `user` u ON u.uuid = p.user_uuid AND u.is_deleted =0
+ WHERE p.article_id = #{articleId} AND p.generation = #{generation} AND p.pool_round = #{poolRound}
+ AND p.status = 'pending' ORDER BY p.like_count DESC, p.create_time ASC
+ </select>
+ <select id="selectExpiredPending" resultType="com.daoyou.rewrite.entity.RelicPool">
+ SELECT * FROM relic_pool WHERE status = 'pending' AND merge_deadline &lt; NOW() ORDER BY id ASC LIMIT #{limit}
+ </select>
+ <insert id="insertDestroyVoteIgnore">
+ INSERT IGNORE INTO relic_destroy_votes(article_id, generation, user_uuid)
+ VALUES(#{articleId}, #{generation}, #{userUuid})
+ </insert>
+ <select id="countVotes" resultType="int">
+ SELECT COUNT(1) FROM relic_destroy_votes WHERE article_id = #{articleId} AND generation = #{generation}
+ </select>
+ <select id="countParticipants" resultType="int">
+ SELECT COUNT(1) FROM relic_participants WHERE article_id = #{articleId} AND generation = #{generation}
+ </select>
+ <select id="selectParticipantUuids" resultType="string">
+ SELECT user_uuid FROM relic_participants WHERE article_id = #{articleId} AND generation = #{generation}
+ </select>
+ <update id="markAllPendingDestroyed">
+ UPDATE relic_pool SET status = 'destroyed' WHERE article_id = #{articleId}
+ AND generation = #{generation} AND status = 'pending'
+ </update>
+</mapper>

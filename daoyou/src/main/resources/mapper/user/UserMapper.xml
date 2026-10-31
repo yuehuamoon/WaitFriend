@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daoyou.user.mapper.UserMapper">
+ <select id="selectByUsername" resultType="com.daoyou.user.entity.User">
+ SELECT uuid, username, password, avatar, introduction, background,
+ cultivation, is_deleted, create_time, update_time
+ FROM `user` WHERE username = #{username} AND is_deleted =0 LIMIT
+1
+ </select>
+ <select id="selectDetail" resultType="com.daoyou.user.dto.UserDetail">
+ SELECT uuid, username, avatar, introduction, background, cultivation, create_time
+ FROM `user` WHERE uuid = #{uuid} AND is_deleted =0
+ </select>
+ <select id="selectBrief" resultType="com.daoyou.user.dto.UserBrief">
+ SELECT uuid, username, avatar, introduction, cultivation
+ FROM `user` WHERE uuid = #{uuid} AND is_deleted =0
+ </select>
+ <select id="selectBriefs" resultType="com.daoyou.user.dto.UserBrief">
+ SELECT uuid, username, avatar, introduction, cultivation FROM `user`
+ WHERE is_deleted =0 AND uuid IN
+ <foreach collection="uuids" item="item" open="(" separator="," close=")">#{item}</foreach>
+ </select>
+ <select id="selectLeaderboard" resultType="com.daoyou.user.dto.UserRankItem">
+ SELECT uuid, username, avatar, cultivation FROM `user`
+ WHERE is_deleted =0 ORDER BY cultivation DESC LIMIT #{limit}
+ </select>
+ <select id="searchByCultivation" resultType="com.daoyou.user.dto.UserBrief">
+ SELECT uuid, username, avatar, introduction, cultivation FROM `user`
+ WHERE is_deleted =0
+ <if test="minCultivation != null">AND cultivation &gt;= #{minCultivation}</if>
+ <if test="maxCultivation != null">AND cultivation &lt;= #{maxCultivation}</if>
+ ORDER BY cultivation DESC LIMIT
+100
+ </select>
+ <update id="updateProfile">
+ UPDATE `user`
+ <set>
+ <if test="avatar != null">avatar = #{avatar},</if>
+ <if test="introduction != null">introduction = #{introduction},</if>
+ <if test="background != null">background = #{background},</if>
+ update_time = CURRENT_TIMESTAMP
+ </set>
+ WHERE uuid = #{uuid} AND is_deleted =0
+ </update>
+ <update id="updatePassword">
+ UPDATE `user` SET password = #{newHash}, update_time = CURRENT_TIMESTAMP
+ WHERE uuid = #{uuid} AND password = #{oldHash} AND is_deleted =0
+ </update>
+ <update id="addCultivation">
+ UPDATE `user` SET cultivation = cultivation + #{delta}, update_time = CURRENT_TIMESTAMP
+ WHERE uuid = #{uuid} AND is_deleted =0
+ </update>
+ <update id="logicalDelete">
+ UPDATE `user` SET is_deleted =1, update_time = CURRENT_TIMESTAMP WHERE uuid = #{uuid} AND is_deleted =0
+ </update>
+ <update id="restore">
+ UPDATE `user` SET is_deleted =0, update_time = CURRENT_TIMESTAMP WHERE uuid = #{uuid} AND is_deleted =1
+ </update>
+ <select id="countByUsername" resultType="int">
+ SELECT COUNT(1) FROM `user` WHERE username = #{username} AND is_deleted =0
+ </select>
+ <select id="searchByKeyword" resultType="com.daoyou.user.dto.UserBrief">
+ SELECT uuid, username, avatar, introduction, cultivation FROM `user`
+ WHERE is_deleted =0 AND username LIKE CONCAT('%',#{keyword},'%') ORDER BY cultivation DESC LIMIT
+100
+ </select>
+</mapper>

@@ -1,0 +1,6 @@
+com/daoyou/common/ResultTest.class
+com/daoyou/common/UserContextTest.class
+com/daoyou/user/dto/RegisterRequestTest.class
+com/daoyou/config/UserContextFilterTest.class
+com/daoyou/mapper/MapperSqlSyntaxTest.class
+com/daoyou/rewrite/service/RelicServiceTest.class

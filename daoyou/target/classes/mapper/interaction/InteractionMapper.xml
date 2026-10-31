@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daoyou.interaction.mapper.InteractionMapper">
+ <insert id="insertReaction">
+ INSERT IGNORE INTO reactions(article_id, user_uuid, type)
+ VALUES(#{articleId}, #{userUuid}, #{type})
+ </insert>
+ <delete id="deleteReaction">
+ DELETE FROM reactions WHERE article_id = #{articleId} AND user_uuid = #{userUuid} AND type = #{type}
+ </delete>
+ <insert id="insertChat" useGeneratedKeys="true" keyProperty="id">
+ INSERT INTO chats(article_id, user_uuid, content) VALUES(#{articleId}, #{userUuid}, #{content})
+ </insert>
+ <select id="selectRecentChats" resultType="com.daoyou.interaction.entity.Chat">
+ SELECT id, article_id, user_uuid, content, create_time FROM chats
+ WHERE article_id = #{articleId} ORDER BY create_time DESC, id DESC LIMIT #{limit}
+ </select>
+ <select id="selectPendingRequest" resultType="com.daoyou.interaction.entity.FriendRequest">
+ SELECT id, from_uuid, to_uuid, message, status, create_time FROM friend_requests
+ WHERE from_uuid = #{fromUuid} AND to_uuid = #{toUuid} AND status = 'pending' LIMIT
+1
+ </select>
+ <select id="selectRequestById" resultType="com.daoyou.interaction.entity.FriendRequest">
+ SELECT id, from_uuid, to_uuid, message, status, create_time FROM friend_requests WHERE id = #{id}
+ </select>
+ <insert id="insertFriendRequest" useGeneratedKeys="true" keyProperty="id">
+ INSERT INTO friend_requests(from_uuid, to_uuid, message, status)
+ VALUES(#{fromUuid}, #{toUuid}, #{message}, 'pending')
+ </insert>
+ <update id="updateRequestStatus">
+ UPDATE friend_requests SET status = #{status}
+ WHERE id = #{id} AND to_uuid = #{toUuid} AND status = 'pending'
+ </update>
+ <insert id="insertFriend">
+ INSERT IGNORE INTO friends(user_uuid, friend_uuid) VALUES(#{userUuid}, #{friendUuid})
+ </insert>
+ <delete id="deleteFriends">
+ DELETE FROM friends WHERE (user_uuid = #{userUuid} AND friend_uuid = #{friendUuid})
+ OR (user_uuid = #{friendUuid} AND friend_uuid = #{userUuid})
+ </delete>
+ <select id="countFriendship" resultType="int">
+ SELECT COUNT(1) FROM friends WHERE user_uuid = #{userUuid} AND friend_uuid = #{friendUuid}
+ </select>
+ <select id="selectFriends" resultType="com.daoyou.interaction.dto.FriendView">
+ SELECT u.uuid, u.username, u.avatar, u.introduction, f.create_time AS friend_since
+ FROM friends f JOIN `user` u ON u.uuid = f.friend_uuid AND u.is_deleted =0
+ WHERE f.user_uuid = #{userUuid} ORDER BY f.create_time DESC
+ </select>
+ <select id="selectPendingIncoming" resultType="com.daoyou.interaction.entity.FriendRequest">
+ SELECT id, from_uuid, to_uuid, message, status, create_time FROM friend_requests
+ WHERE to_uuid = #{toUuid} AND status = 'pending' ORDER BY create_time DESC
+ </select>
+</mapper>

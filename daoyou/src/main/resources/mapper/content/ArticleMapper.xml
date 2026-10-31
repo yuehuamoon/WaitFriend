@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daoyou.content.mapper.ArticleMapper">
+ <sql id="columns">
+ a.id, a.uuid, a.author_uuid, a.building_id, a.title, a.body, a.relic_root_content, a.img_urls, a.type,
+ a.agree_count, a.collect_count, a.chat_count, a.score, a.relic_status,
+ a.relic_generation, a.relic_pool_round, a.create_time, a.update_time
+ </sql>
+ <select id="selectActiveById" resultType="com.daoyou.content.entity.Article">
+ SELECT * FROM articles WHERE id = #{id} AND is_deleted =0
+ </select>
+ <select id="selectRelicForUpdate" resultType="com.daoyou.content.entity.Article">
+ SELECT * FROM articles WHERE id = #{id} AND is_deleted =0 FOR UPDATE
+ </select>
+ <select id="selectBuildingPage" resultType="com.daoyou.content.dto.ArticleView">
+ SELECT <include refid="columns"/> FROM articles a
+ WHERE a.building_id = #{buildingId} AND a.type = 'normal' AND a.is_deleted =0
+ ORDER BY
+ <choose><when test="tab == 'hot'">a.score DESC, a.id DESC</when><otherwise>a.id DESC</otherwise></choose>
+ </select>
+ <select id="search" resultType="com.daoyou.content.dto.ArticleView">
+ SELECT <include refid="columns"/> FROM articles a
+ WHERE a.type = 'normal' AND a.is_deleted =0 AND (a.title LIKE CONCAT('%',#{keyword},'%')
+ OR a.body LIKE CONCAT('%',#{keyword},'%')) ORDER BY a.score DESC, a.id DESC
+ </select>
+ <select id="selectRelicGrowing" resultType="com.daoyou.content.dto.ArticleView">
+ SELECT <include refid="columns"/> FROM articles a
+ WHERE a.type = 'relic' AND a.relic_status = 'growing' AND a.is_deleted =0 ORDER BY a.id DESC
+ </select>
+ <select id="selectUserBestPerBuilding" resultType="com.daoyou.content.dto.ArticleView">
+ SELECT <include refid="columns"/> FROM articles a
+ INNER JOIN (
+ SELECT building_id, MAX(score) AS max_score FROM articles
+ WHERE author_uuid = #{authorUuid} AND type = 'normal' AND is_deleted =0 GROUP BY building_id
+ ) best ON a.building_id = best.building_id AND a.score = best.max_score
+ WHERE a.author_uuid = #{authorUuid} AND a.type = 'normal' AND a.is_deleted =0
+ ORDER BY a.score DESC, a.id DESC
+ </select>
+ <select id="selectUserArticles" resultType="com.daoyou.content.dto.ArticleView">
+ SELECT <include refid="columns"/> FROM articles a
+ WHERE a.author_uuid = #{authorUuid} AND a.is_deleted =0
+ ORDER BY a.create_time DESC, a.id DESC
+ </select>
+ <select id="selectCollections" resultType="com.daoyou.content.dto.ArticleView">
+ SELECT <include refid="columns"/> FROM articles a
+ INNER JOIN reactions r ON r.article_id = a.id AND r.type = 'collect'
+ WHERE r.user_uuid = #{userUuid} AND a.is_deleted =0 ORDER BY r.create_time DESC
+ </select>
+ <update id="logicalDelete">
+ UPDATE articles SET is_deleted =1, update_time = CURRENT_TIMESTAMP WHERE id = #{id} AND is_deleted =0
+ </update>
+ <update id="incrementAgree">
+ UPDATE articles SET agree_count = agree_count +1, score = score +1, update_time = CURRENT_TIMESTAMP
+ WHERE id = #{id} AND is_deleted =0
+ </update>
+ <update id="incrementCollect">
+ UPDATE articles SET collect_count = collect_count +1, score = score +3, update_time = CURRENT_TIMESTAMP
+ WHERE id = #{id} AND is_deleted =0
+ </update>
+ <update id="incrementChat">
+ UPDATE articles SET chat_count = chat_count +1, update_time = CURRENT_TIMESTAMP
+ WHERE id = #{id} AND is_deleted =0
+ </update>
+ <update id="appendSegment">
+ UPDATE articles SET body = CONCAT(body, #{content}), relic_pool_round = relic_pool_round +1,
+ relic_last_merged_at = CURRENT_TIMESTAMP, update_time = CURRENT_TIMESTAMP
+ WHERE id = #{id} AND is_deleted =0
+ </update>
+ <update id="resetRelic">
+ UPDATE articles SET body = relic_root_content, relic_generation = relic_generation +1,
+ relic_pool_round =0, relic_last_merged_user_uuid = NULL, relic_last_merged_at = NULL,
+ relic_last_destroyed_at = CURRENT_TIMESTAMP, update_time = CURRENT_TIMESTAMP
+ WHERE id = #{id} AND is_deleted =0
+ </update>
+ <update id="markMergedInfo">
+ UPDATE articles SET relic_last_merged_user_uuid = #{userUuid},
+ relic_last_merged_at = #{mergedAt}, update_time = CURRENT_TIMESTAMP
+ WHERE id = #{id} AND is_deleted =0
+ </update>
+</mapper>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daoyou.notification.mapper.NotificationMapper">
+ <select id="selectNotifications" resultType="com.daoyou.notification.entity.Notification">
+ SELECT id, user_uuid, type, title, content, payload, read_at, create_time FROM notifications
+ WHERE user_uuid = #{userUuid} <if test="unreadOnly">AND read_at IS NULL</if>
+ ORDER BY create_time DESC, id DESC LIMIT
+100
+ </select>
+ <update id="markRead">
+ UPDATE notifications SET read_at = CURRENT_TIMESTAMP WHERE id = #{id} AND user_uuid = #{userUuid} AND read_at IS NULL
+ </update>
+ <select id="unreadCount" resultType="int">
+ SELECT COUNT(1) FROM notifications WHERE user_uuid = #{userUuid} AND read_at IS NULL
+ </select>
+</mapper>
